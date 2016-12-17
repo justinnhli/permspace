@@ -1,0 +1,1 @@
+from .permspace import PermutationSpace
