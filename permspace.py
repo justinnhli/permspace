@@ -25,7 +25,7 @@ class Namespace:
             delattr(self, key)
         raise KeyError(key)
     def __str__(self):
-        return 'Namespace(' + ', '.join('{}={}'.format(k, v) for k, v in sorted(self.__dict__.items())) + ')'
+        return 'Namespace(' + ', '.join('{}={}'.format(k, repr(v)) for k, v in sorted(self.__dict__.items())) + ')'
     def update(self, **kwargs):
         for key, value in kwargs.items():
             self[key] = value
