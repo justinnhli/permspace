@@ -41,9 +41,15 @@ class Namespace:
         return '\t'.join(str(self[k]) for k in order)
 
 class ParameterSpaceIterator:
-    def __init__(self, pspace):
+    def __init__(self, pspace, **starting_values):
         self.pspace = pspace
-        self.state = (len(self.pspace.order) - 1) * [0] + [-1]
+        self.state = len(self.pspace.order) * [0]
+        for key, value in starting_values.items():
+            assert key in self.pspace.independents, 'unknown parameter: {}'.format(key)
+            assert value in self.pspace.independents[key], 'unknown value for parameter {}: {}'.format(key, repr(value))
+            index = self.pspace.order.index(key)
+            self.state[index] = self.pspace.independents[key].index(value)
+        self.state[-1] -= 1
     def __iter__(self):
         return self
     def __next__(self):
@@ -144,6 +150,8 @@ class PermutationSpace:
         return len(list(self.__iter__()))
     def __iter__(self):
         return ParameterSpaceIterator(self)
+    def iter_from(self, **starting_values):
+        return ParameterSpaceIterator(self, **starting_values)
     def add_filter(self, fn):
         wrapped_function = FunctionWrapper(fn)
         if not (set(wrapped_function.arguments) <= set(self.dependencies.keys())):
