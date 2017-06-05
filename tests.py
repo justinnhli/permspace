@@ -6,13 +6,13 @@ from permspace import PermutationSpace
 class PermSpaceTest(TestCase):
     def setUp(self):
         self.pspace = PermutationSpace(['arabic', 'letter_lower', 'roman_lower', 'question_name', 'constant'],
-                arabic=range(1, 4),
-                letter_lower=list('abc'),
-                roman_lower=['i', 'ii', 'iii'],
-                question_name=(lambda arabic: str(arabic)),
-                part_name=(lambda question_name, letter_lower: question_name + '.' + letter_lower),
-                subpart_name=(lambda part_name, roman_lower: part_name + '.' + roman_lower),
-                constant='constant',
+            arabic=range(1, 4),
+            letter_lower=list('abc'),
+            roman_lower=['i', 'ii', 'iii'],
+            question_name=(lambda arabic: str(arabic)),
+            part_name=(lambda question_name, letter_lower: question_name + '.' + letter_lower),
+            subpart_name=(lambda part_name, roman_lower: part_name + '.' + roman_lower),
+            constant='constant',
         )
     def test_basic(self):
         self.assertEqual(len(self.pspace), 27)
