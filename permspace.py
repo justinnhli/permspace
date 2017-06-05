@@ -136,7 +136,7 @@ class PermutationSpace:
                 if parameter in self.dependencies:
                     continue
                 if all((argument in self.dependencies) for argument in fn.arguments):
-                    self.dependencies[parameter] = set.union(*(self.dependencies[argument] for argument in fn.arguments))
+                    self.dependencies[parameter] = set.union(set(*(self.dependencies[argument] for argument in fn.arguments)))
                     changed = True
         if len(self.dependencies) != len(self.independents) + len(self.dependents):
             raise ValueError('parameter contains undefined/unreachable arguments')
