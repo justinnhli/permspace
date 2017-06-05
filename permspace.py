@@ -84,22 +84,17 @@ class ParameterSpaceIterator:
         for parameter in self.pspace.independents.keys():
             if parameter not in result:
                 result[parameter] = self.pspace.independents[parameter][0]
-        changed = True
-        while changed:
-            changed = False
-            for parameter in sorted(self.pspace.dependents.keys()):
-                if parameter not in result:
-                    try:
-                        result[parameter] = self.pspace.dependents[parameter](**result)
-                        changed = True
-                    except TypeError:
-                        pass
+        for parameter, value in self.pspace.constants.items():
+            result[parameter] = value
+        for parameter in self.pspace.dependents_topo:
+            fn = self.pspace.dependents[parameter]
+            result[parameter] = fn(**result)
         return result
     def _check_filters_(self, result):
         conflicts = []
         for fn in self.pspace.filters:
             if not fn(**result):
-                conflicts.append(set.union(*(self.pspace.dependencies[argument] for argument in fn.arguments)))
+                conflicts.append(set.union(*(self.pspace.dependency_closure[argument] for argument in fn.arguments)))
         return conflicts
 
 class FunctionWrapper:
@@ -113,8 +108,11 @@ class PermutationSpace:
     def __init__(self, order, **kwargs):
         self.independents = {}
         self.dependents = {}
+        self.dependents_topo = []
+        self.dependency_closure = {}
+        self.constants = {}
         self.filters = []
-        self.dependencies = {}
+        self.order = list(order)
         for key, value in kwargs.items():
             if isinstance(value, tuple):
                 self.independents[key] = value
@@ -123,29 +121,57 @@ class PermutationSpace:
             elif hasattr(value, '__call__'):
                 self.dependents[key] = FunctionWrapper(value)
             else:
-                self.independents[key] = (value,)
-        order = tuple(order)
-        if len(order) != len(set(order)):
-            raise ValueError('order contains duplicates')
-        if not (set(order) <= set(self.independents.keys())):
-            raise ValueError('order contains undefined/unreachable arguments')
-        for parameter, values in self.independents.items():
-            if len(values) > 1 and parameter not in order:
-                raise ValueError('variable parameter "{}" not in `order`'.format(parameter))
-        self.order = tuple(set(self.independents.keys()) - set(order)) + order
-        for parameter in self.independents:
-            self.dependencies[parameter] = set([parameter,])
-        changed = True
-        while changed:
-            changed = False
-            for parameter, fn in self.dependents.items():
-                if parameter in self.dependencies:
+                self.constants[key] = value
+        self._calculate_dependents_topo_()
+        self._calculate_dependency_closure_()
+        self._check_order_()
+        self._simplify_order_()
+    def _calculate_dependents_topo_(self):
+        prev_count = 0
+        while len(self.dependents_topo) < len(self.dependents):
+            for key, fn in self.dependents.items():
+                if key in self.dependents_topo:
                     continue
-                if all((argument in self.dependencies) for argument in fn.arguments):
-                    self.dependencies[parameter] = set.union(set(*(self.dependencies[argument] for argument in fn.arguments)))
-                    changed = True
-        if len(self.dependencies) != len(self.independents) + len(self.dependents):
-            raise ValueError('parameter contains undefined/unreachable arguments')
+                reachables = self.parameters
+                if set(fn.arguments) <= reachables:
+                    self.dependents_topo.append(key)
+            if len(self.dependents_topo) == prev_count:
+                unreachables = set(self.dependents.keys()) - set(self.dependents_topo)
+                raise ValueError('parameters contain undefined arguments:' + ', '.join(sorted(unreachables)))
+            prev_count = len(self.dependents_topo)
+    def _calculate_dependency_closure_(self):
+        for key in self.independents:
+            self.dependency_closure[key] = set([key])
+        for key in self.constants:
+            self.dependency_closure[key] = set([key])
+        for key in self.dependents_topo:
+            fn = self.dependents[key]
+            self.dependency_closure[key] = set.union(*(self.dependency_closure[argument] for argument in fn.arguments))
+    def _check_order_(self):
+        order_set = set(self.order)
+        if len(self.order) != len(order_set):
+            uniques = set()
+            duplicates = set()
+            for key in self.independents:
+                if key in uniques:
+                    duplicates.add(key)
+                uniques.add(key)
+            raise ValueError('parameter ordering contains duplicates: ' + ', '.join(sorted(duplicates)))
+        if not (order_set <= self.parameters):
+            unreachables = order_set - self.parameters
+            raise ValueError('parameter ordering contains undefined parameters: ' + ', '.join(sorted(unreachables)))
+        if not (set(self.independents.keys()) <= order_set):
+            unreachables = set(self.independents.keys()) - order_set
+            raise ValueError('parameter ordering is missing independent parameters: ' + ', '.join(sorted(unreachables)))
+    def _simplify_order_(self):
+        self.order = [parameter for parameter in self.order if parameter in self.independents]
+    @property
+    def parameters(self):
+        return set.union(
+            set(self.independents.keys()),
+            set(self.dependents_topo),
+            set(self.constants.keys()),
+        )
     def __len__(self):
         return len(list(self.__iter__()))
     def __iter__(self):
@@ -154,19 +180,6 @@ class PermutationSpace:
         return ParameterSpaceIterator(self, **starting_values)
     def add_filter(self, fn):
         wrapped_function = FunctionWrapper(fn)
-        if not (set(wrapped_function.arguments) <= set(self.dependencies.keys())):
+        if not (set(wrapped_function.arguments) <= self.parameters):
             raise ValueError('filter contains undefined/unreachable arguments')
         self.filters.append(wrapped_function)
-
-def main():
-    pspace = PermutationSpace(('decay_rate', 'spreading_depth', 'word'),
-        word=('anger', 'army', 'black', 'bread', 'car', 'chair', 'city', 'cold', 'cup', 'doctor', 'flag', 'foot', 'fruit', 'girl', 'high', 'king', 'lion', 'man', 'mountain', 'music', 'needle', 'pen', 'river', 'rough', 'rubber', 'shirt', 'sleep', 'slow', 'smell', 'smoke', 'soft', 'spider', 'sweet', 'thief', 'trash', 'window'),
-        spreading_depth=range(1, 7),
-        decay_rate=(0.5, 0.25, 0.75, 0.9),
-        boost_decay=1,
-    )
-    for parameters in pspace:
-        print(parameters)
-
-if __name__ == '__main__':
-    main()
