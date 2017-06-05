@@ -37,6 +37,8 @@ class Namespace:
         return self.__dict__.items()
     def to_tuple(self, order):
         return tuple(self[k] for k in order)
+    def to_csv_row(self, order):
+        return '\t'.join(str(self[k]) for k in order)
 
 class ParameterSpaceIterator:
     def __init__(self, pspace):
