@@ -1,4 +1,3 @@
-from types import GeneratorType
 from inspect import signature
 
 class Namespace:
@@ -114,10 +113,8 @@ class PermutationSpace:
         self.filters = []
         self.order = list(order)
         for key, value in kwargs.items():
-            if isinstance(value, tuple):
-                self.independents[key] = value
-            elif any(isinstance(value, t) for t in (list, range, GeneratorType)):
-                self.independents[key] = tuple(value)
+            if hasattr(value, '__iter__') and not isinstance(value, str):
+                self.independents[key] = list(value)
             elif hasattr(value, '__call__'):
                 self.dependents[key] = FunctionWrapper(value)
             else:
