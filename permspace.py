@@ -142,8 +142,7 @@ class PermutationSpace:
         for key in self.constants:
             self.dependency_closure[key] = set([key])
         for key in self.dependents_topo:
-            fn = self.dependents[key]
-            self.dependency_closure[key] = set.union(*(self.dependency_closure[argument] for argument in fn.arguments))
+            self.dependency_closure[key] = set.union(set(), *(self.dependency_closure[argument] for argument in self.dependents[key].arguments))
     def _check_order_(self):
         order_set = set(self.order)
         if len(self.order) != len(order_set):
