@@ -225,3 +225,14 @@ class PermutationSpace:
         if not (set(wrapped_function.arguments) <= self.parameters):
             raise ValueError('filter contains undefined/unreachable arguments')
         self.filters.append(wrapped_function)
+    def _get_namespace_from_indices_(self, indices):
+        assert len(indices) == len(self.order)
+        assert all(index < len(self.independents[key]) for index, key in zip(indices, self.order))
+        result = Namespace()
+        for parameter, index in zip(self.order, indices):
+            result[parameter] = self.independents[parameter][index]
+        for parameter in self.dependents_topo:
+            result[parameter] = self.dependents[parameter](**result)
+        for parameter, value in self.constants.items():
+            result[parameter] = value
+        return result
