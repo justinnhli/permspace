@@ -2,41 +2,66 @@ from inspect import signature
 
 class Namespace:
     def __init__(self, **kwargs):
+        self._internal_ = {}
         self.update(**kwargs)
     def __eq__(self, other):
-        return isinstance(other, Namespace) and vars(self) == vars(other)
+        return isinstance(other, Namespace) and self._internal_ == other._internal_
     def __len__(self):
-        return len(self.__dict__)
+        return len(self._internal_)
     def __add__(self, other):
-        updated = self.__dict__
-        updated.update(other.__dict__)
+        updated = self._internal_
+        updated.update(other._internal_)
         return Namespace(**updated)
     def __contains__(self, key):
-        return key in self.__dict__
+        return key in self._internal_
     def __getitem__(self, key):
-        if key in self.__dict__:
-            return self.__dict__[key]
-        raise KeyError(key)
+        try:
+            return getattr(self, key)
+        except AttributeError as e:
+            raise KeyError(str(e))
     def __setitem__(self, key, value):
         setattr(self, key, value)
     def __delitem__(self, key):
-        if key in self.__dict__:
+        if key in self._internal_:
             delattr(self, key)
-        raise KeyError(key)
+        else:
+            raise KeyError(key)
+    def __getattr__(self, key):
+        if key in self.__dict__:
+            return self.__dict__[key]
+        if key in self._internal_:
+            return self._internal_[key]
+        raise AttributeError('{} object has no attribute {}'.format(repr(self.__class__.__name__), repr(key)))
+    def __setattr__(self, key, value):
+        self.__dict__[key] = value
+    def __delattr__(self, key):
+        if key in self._internal_:
+            del self._internal_[key]
+            del self.__dict__[key]
     def __str__(self):
         return 'Namespace(' + ', '.join('{}={}'.format(k, repr(v)) for k, v in sorted(self.__dict__.items())) + ')'
     def update(self, **kwargs):
         for key, value in kwargs.items():
-            self[key] = value
+            try:
+                stored_value = Namespace.__getattribute__(self, key)
+                raise KeyError('{} is reserved and is not allowed as a key'.format(repr(key)))
+            except:
+                self._internal_[key] = value
+                self.__dict__[key] = value
     def keys(self):
-        return self.__dict__.keys()
+        return self._internal_.keys()
     def values(self):
-        return self.__dict__.values()
+        return self._internal_.values()
     def items(self):
-        return self.__dict__.items()
+        return self._internal_.items()
+    def _expand_order_(self, order):
+        order = list(order)
+        return order + sorted(set(self.keys()) - set(order))
     def to_tuple(self, order):
+        order = self._expand_order_(order)
         return tuple(self[k] for k in order)
     def to_csv_row(self, order):
+        order = self._expand_order_(order)
         return '\t'.join(str(self[k]) for k in order)
 
 class ParameterSpaceIterator:
