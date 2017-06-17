@@ -239,21 +239,23 @@ class PermutationSpace:
         value_index = self.independents[key].index(value)
         start_index[key_index] = value_index
         end_index = MixedRadix(self.ordered_sizes, start_index).next(key_index)
-        # FIXME 
-        start = self._get_namespace_from_indices_(start_index)
-        end = self._get_namespace_from_indices_(end_index)
+        start = self._get_independents_from_indices_(start_index)
+        end = self._get_independents_from_indices_(end_index)
         return ParameterSpaceIterator(self, start=start, end=end)
     def add_filter(self, filter_fn):
         wrapped_function = FunctionWrapper(filter_fn)
         if not set(wrapped_function.arguments) <= self.parameters:
             raise ValueError('filter contains undefined/unreachable arguments')
         self.filters.append(wrapped_function)
-    def _get_namespace_from_indices_(self, indices):
+    def _get_independents_from_indices_(self, indices):
         assert len(indices) == len(self.order)
         assert all(index < len(self.independents[key]) for index, key in zip(indices, self.order))
         result = Namespace()
         for parameter, index in zip(self.order, indices):
             result[parameter] = self.independents[parameter][index]
+        return result
+    def _get_namespace_from_indices_(self, indices):
+        result = self._get_independents_from_indices_(indices)
         for parameter in self.dependents_topo:
             result[parameter] = self.dependents[parameter](**result)
         for parameter, value in self.constants.items():
