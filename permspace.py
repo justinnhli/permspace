@@ -214,15 +214,38 @@ class PermutationSpace:
             set(self.dependents_topo),
             set(self.constants.keys()),
         )
+    @property
+    def approximate_size(self):
+        product = 1
+        for values in self.independents.values():
+            product *= len(values)
+        return product
+    @property
+    def ordered_sizes(self):
+        return [len(self.independents[parameter]) for parameter in self.order]
     def __len__(self):
         return len(list(self.__iter__()))
     def __iter__(self):
         return ParameterSpaceIterator(self)
-    def iter_from(self, **starting_values):
-        return ParameterSpaceIterator(self, **starting_values)
-    def add_filter(self, fn):
-        wrapped_function = FunctionWrapper(fn)
-        if not (set(wrapped_function.arguments) <= self.parameters):
+    def iter_from(self, start=None):
+        return ParameterSpaceIterator(self, start=start)
+    def iter_until(self, end=None):
+        return ParameterSpaceIterator(self, end=end)
+    def iter_between(self, start=None, end=None):
+        return ParameterSpaceIterator(self, start=start, end=end)
+    def iter_only(self, key, value):
+        start_index = len(self.order) * [0]
+        key_index = self.order.index(key)
+        value_index = self.independents[key].index(value)
+        start_index[key_index] = value_index
+        end_index = MixedRadix(self.ordered_sizes, start_index).next(key_index)
+        # FIXME 
+        start = self._get_namespace_from_indices_(start_index)
+        end = self._get_namespace_from_indices_(end_index)
+        return ParameterSpaceIterator(self, start=start, end=end)
+    def add_filter(self, filter_fn):
+        wrapped_function = FunctionWrapper(filter_fn)
+        if not set(wrapped_function.arguments) <= self.parameters:
             raise ValueError('filter contains undefined/unreachable arguments')
         self.filters.append(wrapped_function)
     def _get_namespace_from_indices_(self, indices):
