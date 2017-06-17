@@ -34,12 +34,14 @@ class Namespace:
         raise AttributeError('{} object has no attribute {}'.format(repr(self.__class__.__name__), repr(key)))
     def __setattr__(self, key, value):
         self.__dict__[key] = value
+        if not (key.startswith('_') and key.endswith('_')):
+            self._internal_[key] = value
     def __delattr__(self, key):
         if key in self._internal_:
             del self._internal_[key]
             del self.__dict__[key]
     def __str__(self):
-        return 'Namespace(' + ', '.join('{}={}'.format(k, repr(v)) for k, v in sorted(self.__dict__.items())) + ')'
+        return 'Namespace(' + ', '.join('{}={}'.format(k, repr(v)) for k, v in sorted(self._internal_.items())) + ')'
     def update(self, **kwargs):
         for key, value in kwargs.items():
             try:
