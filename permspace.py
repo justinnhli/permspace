@@ -45,9 +45,9 @@ class Namespace:
     def update(self, **kwargs):
         for key, value in kwargs.items():
             try:
-                stored_value = Namespace.__getattribute__(self, key)
+                Namespace.__getattribute__(self, key)
                 raise KeyError('{} is reserved and is not allowed as a key'.format(repr(key)))
-            except:
+            except AttributeError:
                 self._internal_[key] = value
                 self.__dict__[key] = value
     def keys(self):
