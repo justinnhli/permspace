@@ -42,13 +42,13 @@ class Namespace:
 class ParameterSpaceIterator:
     def __init__(self, pspace, **starting_values):
         self.pspace = pspace
-        self.state = len(self.pspace.order) * [0]
+        self._state = len(self.pspace.order) * [0]
         for key, value in starting_values.items():
             assert key in self.pspace.independents, 'unknown parameter: {}'.format(key)
             assert value in self.pspace.independents[key], 'unknown value for parameter {}: {}'.format(key, repr(value))
             index = self.pspace.order.index(key)
-            self.state[index] = self.pspace.independents[key].index(value)
-        self.state[-1] -= 1
+            self._state[index] = self.pspace.independents[key].index(value)
+        self._state[-1] -= 1
     def __iter__(self):
         return self
     def __next__(self):
@@ -63,21 +63,21 @@ class ParameterSpaceIterator:
         return result
     def _update_state_(self, largest_index=None):
         if largest_index is None:
-            largest_index = len(self.state) - 1
-        for index in range(largest_index + 1, len(self.state)):
-            self.state[index] = 0
+            largest_index = len(self._state) - 1
+        for index in range(largest_index + 1, len(self._state)):
+            self._state[index] = 0
         parameters = self.pspace.order[:largest_index + 1]
         for index, parameter in reversed(tuple(enumerate(parameters))):
-            if self.state[index] < len(self.pspace.independents[parameter]) - 1:
-                self.state[index] += 1
+            if self._state[index] < len(self.pspace.independents[parameter]) - 1:
+                self._state[index] += 1
                 break
             elif index == 0:
                 raise StopIteration
             else:
-                self.state[index] = 0
+                self._state[index] = 0
     def _expand_values_(self):
         result = Namespace()
-        for parameter, index in zip(self.pspace.order, self.state):
+        for parameter, index in zip(self.pspace.order, self._state):
             value = self.pspace.independents[parameter][index]
             result[parameter] = value
         for parameter in self.pspace.independents.keys():
