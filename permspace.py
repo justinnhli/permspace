@@ -66,6 +66,35 @@ class Namespace:
         order = self._expand_order_(order)
         return '\t'.join(str(self[k]) for k in order)
 
+class MixedRadix:
+    def __init__(self, radixes, init_values=None):
+        self.radixes = radixes
+        if init_values is None:
+            self._state_ = len(radixes) * [0]
+        else:
+            assert len(radixes) == len(init_values)
+            assert all(place < cap for place, cap in zip(init_values, radixes))
+            self._state_ = list(init_values)
+        self._state_[-1] -= 1
+    def __iter__(self):
+        return self
+    def __next__(self):
+        return self.next()
+    def next(self, min_place=None):
+        if min_place is None:
+            min_place = len(self._state_) - 1
+        for index in range(min_place + 1, len(self._state_)):
+            self._state_[index] = 0
+        for index in reversed(range(min_place + 1)):
+            if self._state_[index] < self.radixes[index] - 1:
+                self._state_[index] += 1
+                break
+            elif index == 0:
+                raise StopIteration
+            else:
+                self._state_[index] = 0
+        return self._state_
+
 class ParameterSpaceIterator:
     def __init__(self, pspace, start=None, end=None):
         if start is None:
@@ -73,63 +102,35 @@ class ParameterSpaceIterator:
         if end is None:
             end = {}
         self.pspace = pspace
-        self._state = len(self.pspace.order) * [0]
+        start_indices = len(self.pspace.order) * [0]
         for key, value in start.items():
             assert key in self.pspace.independents, 'unknown start parameter: {}'.format(key)
             assert value in self.pspace.independents[key], 'unknown value for start parameter {}: {}'.format(key, repr(value))
             index = self.pspace.order.index(key)
-            self._state[index] = self.pspace.independents[key].index(value)
-        self._state[-1] -= 1
-        self._end_state = None
+            start_indices[index] = self.pspace.independents[key].index(value)
+        self._state_ = MixedRadix(self.pspace.ordered_sizes, start_indices)
+        self._end_indices_ = None
         if end:
-            self._end_state = len(self.pspace.order) * [0]
+            self._end_indices_ = len(self.pspace.order) * [0]
             for key, value in end.items():
                 assert key in self.pspace.independents, 'unknown end parameter: {}'.format(key)
                 assert value in self.pspace.independents[key], 'unknown value for end parameter {}: {}'.format(key, repr(value))
                 index = self.pspace.order.index(key)
-                self._end_state[index] = self.pspace.independents[key].index(value)
+                self._end_indices_[index] = self.pspace.independents[key].index(value)
     def __iter__(self):
         return self
     def __next__(self):
-        self._update_state_()
-        result = self._expand_values_()
-        conflicts = self._check_filters_(result)
+        conflicts = True
+        min_place = len(self.pspace.order) - 1
         while conflicts:
-            largest_index = min(max(self.pspace.order.index(parameter) for parameter in parameters) for parameters in conflicts)
-            self._update_state_(largest_index=largest_index)
-            result = self._expand_values_()
-            conflicts = self._check_filters_(result)
-        return result
-    def _update_state_(self, largest_index=None):
-        if largest_index is None:
-            largest_index = len(self._state) - 1
-        for index in range(largest_index + 1, len(self._state)):
-            self._state[index] = 0
-        parameters = self.pspace.order[:largest_index + 1]
-        for index, parameter in reversed(tuple(enumerate(parameters))):
-            if self._state[index] < len(self.pspace.independents[parameter]) - 1:
-                self._state[index] += 1
-                if self._end_state and self._state >= self._end_state:
-                    raise StopIteration
-                break
-            elif index == 0:
+            next_index = self._state_.next(min_place)
+            if self._end_indices_ and next_index >= self._end_indices_:
                 raise StopIteration
-            else:
-                self._state[index] = 0
-    def _expand_values_(self):
-        result = Namespace()
-        for parameter, index in zip(self.pspace.order, self._state):
-            value = self.pspace.independents[parameter][index]
-            result[parameter] = value
-        for parameter in self.pspace.independents.keys():
-            if parameter not in result:
-                result[parameter] = self.pspace.independents[parameter][0]
-        for parameter, value in self.pspace.constants.items():
-            result[parameter] = value
-        for parameter in self.pspace.dependents_topo:
-            fn = self.pspace.dependents[parameter]
-            result[parameter] = fn(**result)
-        return result
+            next_state = self.pspace._get_namespace_from_indices_(next_index)
+            conflicts = self._check_filters_(next_state)
+            if conflicts:
+                min_place = min(max(self.pspace.order.index(parameter) for parameter in parameters) for parameters in conflicts)
+        return next_state
     def _check_filters_(self, result):
         conflicts = []
         for fn in self.pspace.filters:
