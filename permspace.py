@@ -46,12 +46,12 @@ class Namespace:
         return repr(self)
     def update(self, **kwargs):
         for key, value in kwargs.items():
-            try:
-                Namespace.__getattribute__(self, key)
+            # FIXME HACK
+            reserved = ['keys', 'values', 'items', 'to_tuple', 'to_csv_row']
+            if key in reserved:
                 raise KeyError('{} is reserved and is not allowed as a key'.format(repr(key)))
-            except AttributeError:
-                self._internal_[key] = value
-                self.__dict__[key] = value
+            self._internal_[key] = value
+            self.__dict__[key] = value
     def keys(self):
         return self._internal_.keys()
     def values(self):
