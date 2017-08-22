@@ -40,8 +40,10 @@ class Namespace:
         if key in self._internal_:
             del self._internal_[key]
             del self.__dict__[key]
-    def __str__(self):
+    def __repr__(self):
         return 'Namespace(' + ', '.join('{}={}'.format(k, repr(v)) for k, v in sorted(self._internal_.items())) + ')'
+    def __str__(self):
+        return repr(self)
     def update(self, **kwargs):
         for key, value in kwargs.items():
             try:
