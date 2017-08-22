@@ -256,8 +256,8 @@ class PermutationSpace:
         return result
     def _get_namespace_from_indices_(self, indices):
         result = self._get_independents_from_indices_(indices)
-        for parameter in self.dependents_topo:
-            result[parameter] = self.dependents[parameter](**result)
         for parameter, value in self.constants.items():
             result[parameter] = value
+        for parameter in self.dependents_topo:
+            result[parameter] = self.dependents[parameter](**result)
         return result
