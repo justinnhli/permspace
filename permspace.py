@@ -219,7 +219,7 @@ class PermutationSpace:
                     self.dependents_topo.append(key)
             if len(self.dependents_topo) == prev_count:
                 unreachables = set(self.dependents.keys()) - set(self.dependents_topo)
-                raise ValueError('parameters contain undefined arguments:' + ', '.join(sorted(unreachables)))
+                raise ValueError('undefined arguments in parameter: ' + ', '.join(sorted(unreachables)))
             prev_count = len(self.dependents_topo)
 
     def _calculate_dependency_closure_(self):
