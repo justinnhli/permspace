@@ -208,6 +208,15 @@ class PermutationSpace:
         self._calculate_dependency_closure_()
         self._simplify_order_()
 
+    def __getitem__(self, key):
+        if key in self.independents:
+            return self.independents[key]
+        if key in self.dependents:
+            return self.dependents[key]
+        if key in self.constants:
+            return self.constants[key]
+        raise KeyError(f'no parameter {key}; possible choices are {", ".join(self.parameters)}')
+
     def _calculate_dependents_topo_(self):
         prev_count = 0
         while len(self.dependents_topo) < len(self.dependents):
