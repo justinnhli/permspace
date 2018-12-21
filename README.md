@@ -10,7 +10,7 @@ The module exposes a single class `PermutationSpace`.
 
 This class represents the space over which parameters can exist. The simplest usage is as a replacement for `itertools.product`. The following example resembles the result of `product(range(1,3), 'ab', ['i', 'ii'])`:
 
-```
+```python
 pspace = PermutationSpace(['question', 'part', 'subpart'],
 	question=range(1,3),
 	part=list('ab'),
@@ -34,7 +34,7 @@ for parameters in pspace:
 
 However, a `PermutationSpace` allows for *dependent* parameters, which are parameters are defined based on the values of other parameters. For example:
 
-```
+```python
 pspace = PermutationSpace(['question', 'part', 'subpart'],
 	question=range(1,3),
 	part=list('ab'),
@@ -57,7 +57,7 @@ for parameters in pspace:
 The dependent parameters can themselves be depended upon. The following gives the same output as the above:
 
 
-```
+```python
 pspace = PermutationSpace(['question', 'part', 'subpart'],
 	question=range(1,3),
 	part=list('ab'),
@@ -71,7 +71,7 @@ for parameters in pspace:
 
 Additionally, a `PermutationSpace` can be *filtered* by boolean functions. As a trivial example, the following code would only give even-numbered coordinates:
 
-```
+```python
 pspace = PermutationSpace(['x', 'y'],
 	x=range(10),
 	y=range(10),
