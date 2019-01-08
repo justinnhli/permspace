@@ -12,15 +12,15 @@ This class represents the space over which parameters can exist. The simplest us
 
 ```python
 pspace = PermutationSpace(['question', 'part', 'subpart'],
-	question=range(1,3),
-	part=list('ab'),
-	subpart=['i', 'ii'],
+    question=range(1,3),
+    part=list('ab'),
+    subpart=['i', 'ii'],
 )
 
 print(len(pspace)) # 8
 
 for parameters in pspace:
-	print(parameters.question, parameters.part, parameters.subpart)
+    print(parameters.question, parameters.part, parameters.subpart)
 
 # 1 a i
 # 1 a ii
@@ -36,13 +36,13 @@ However, a `PermutationSpace` allows for *dependent* parameters, which are param
 
 ```python
 pspace = PermutationSpace(['question', 'part', 'subpart'],
-	question=range(1,3),
-	part=list('ab'),
-	subpart=['i', 'ii'],
-	subpart_name=(lambda question, part, subpart: '.'.join([str(question), part, subpart])),
+    question=range(1,3),
+    part=list('ab'),
+    subpart=['i', 'ii'],
+    subpart_name=(lambda question, part, subpart: '.'.join([str(question), part, subpart])),
 )
 for parameters in pspace:
-	print(parameters.subpart_name)
+    print(parameters.subpart_name)
 
 # 1.a.i
 # 1.a.ii
@@ -59,26 +59,26 @@ The dependent parameters can themselves be depended upon. The following gives th
 
 ```python
 pspace = PermutationSpace(['question', 'part', 'subpart'],
-	question=range(1,3),
-	part=list('ab'),
-	subpart=['i', 'ii'],
-	part_name=(lambda question, part: str(question) + '.' + part),
-	subpart_name=(lambda part_name, subpart: part_name + '.' + subpart),
+    question=range(1,3),
+    part=list('ab'),
+    subpart=['i', 'ii'],
+    part_name=(lambda question, part: str(question) + '.' + part),
+    subpart_name=(lambda part_name, subpart: part_name + '.' + subpart),
 )
 for parameters in pspace:
-	print(parameters.subpart_name)
+    print(parameters.subpart_name)
 ```
 
 Additionally, a `PermutationSpace` can be *filtered* by boolean functions. As a trivial example, the following code would only give even-numbered coordinates:
 
 ```python
 pspace = PermutationSpace(['x', 'y'],
-	x=range(10),
-	y=range(10),
+    x=range(10),
+    y=range(10),
 )
 pspace.add_filter((lambda x, y: x % 2 == y % 2 == 0))
 for parameters in pspace:
-	print(parameters.x, parameters.y)
+    print(parameters.x, parameters.y)
 ```
 
 Instance attributes (read-only):
