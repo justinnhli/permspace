@@ -5,7 +5,7 @@ class Namespace:
 
     def __init__(self, **kwargs):
         self._internal_ = {}
-        self.update(**kwargs)
+        self.update_(**kwargs)
 
     def __eq__(self, other):
         return isinstance(other, Namespace) and self._internal_ == other._internal_
@@ -24,8 +24,8 @@ class Namespace:
     def __getitem__(self, key):
         try:
             return getattr(self, key)
-        except AttributeError as e:
-            raise KeyError(str(e))
+        except AttributeError as err:
+            raise KeyError(str(err))
 
     def __setitem__(self, key, value):
         setattr(self, key, value)
@@ -59,33 +59,38 @@ class Namespace:
     def __str__(self):
         return repr(self)
 
-    def update(self, **kwargs):
-        for key, value in kwargs.items():
-            # FIXME HACK
-            reserved = ['keys', 'values', 'items', 'to_tuple', 'to_csv_row']
-            if key in reserved:
-                raise KeyError('{} is reserved and is not allowed as a key'.format(repr(key)))
-            self._internal_[key] = value
-            self.__dict__[key] = value
+    def update_(self, **kwargs):
+        invalid_keys = set(kwargs.keys()).intersection(dir(self))
+        if invalid_keys:
+            message = '\n'.join([
+                'The following are reserved and not allowed as keys:',
+                *(f'    {key}' for key in sorted(invalid_keys)),
+            ])
+            raise ValueError(message)
+        self._internal_.update(kwargs)
+        self.__dict__.update(kwargs)
 
-    def keys(self):
+    def keys_(self):
         return self._internal_.keys()
 
-    def values(self):
+    def values_(self):
         return self._internal_.values()
 
-    def items(self):
+    def items_(self):
         return self._internal_.items()
 
-    def _expand_order_(self, order):
+    def _expand_order(self, order):
         order = list(order)
         return order + sorted(set(self.keys()) - set(order))
 
-    def to_tuple(self, order):
+    def to_tuple_(self, order):
         order = self._expand_order_(order)
         return tuple(self[k] for k in order)
 
-    def to_csv_row(self, order):
+    def to_dict_(self):
+        return self._internal_
+
+    def to_csv_row_(self, order):
         order = self._expand_order_(order)
         return '\t'.join(str(self[k]) for k in order)
 
@@ -129,8 +134,12 @@ class ParameterSpaceIterator:
     def __init__(self, pspace, start=None, end=None):
         if start is None:
             start = {}
+        elif isinstance(start, Namespace):
+            start = start.to_dict_()
         if end is None:
             end = {}
+        elif isinstance(end, Namespace):
+            end = end.to_dict_()
         self.pspace = pspace
         start_indices = len(self.pspace.order) * [0]
         for key, value in start.items():
@@ -170,20 +179,20 @@ class ParameterSpaceIterator:
 
     def _check_filters_(self, result):
         conflicts = []
-        for fn in self.pspace.filters:
-            if not fn(**result):
-                conflicts.append(set.union(*(self.pspace.dependency_closure[argument] for argument in fn.arguments)))
+        for func in self.pspace.filters:
+            if not func(**result.to_dict_()):
+                conflicts.append(set.union(*(self.pspace.dependency_closure[argument] for argument in func.arguments)))
         return conflicts
 
 
 class FunctionWrapper:
 
-    def __init__(self, fn):
-        self.fn = fn
-        self.arguments = tuple(signature(self.fn).parameters.keys())
+    def __init__(self, func):
+        self.func = func
+        self.arguments = tuple(signature(self.func).parameters.keys())
 
     def __call__(self, **kwargs):
-        return self.fn(**dict((k, v) for k, v in kwargs.items() if k in self.arguments))
+        return self.func(**dict((k, v) for k, v in kwargs.items() if k in self.arguments))
 
 
 class PermutationSpace:
@@ -220,11 +229,11 @@ class PermutationSpace:
     def _calculate_dependents_topo_(self):
         prev_count = 0
         while len(self.dependents_topo) < len(self.dependents):
-            for key, fn in self.dependents.items():
+            for key, func in self.dependents.items():
                 if key in self.dependents_topo:
                     continue
                 reachables = self.parameters
-                if set(fn.arguments) <= reachables:
+                if set(func.arguments) <= reachables:
                     self.dependents_topo.append(key)
             if len(self.dependents_topo) == prev_count:
                 unreachables = set(self.dependents.keys()) - set(self.dependents_topo)
@@ -313,8 +322,8 @@ class PermutationSpace:
         end = self._get_independents_from_indices_(end_index)
         return ParameterSpaceIterator(self, start=start, end=end)
 
-    def add_filter(self, filter_fn):
-        wrapped_function = FunctionWrapper(filter_fn)
+    def add_filter(self, filter_func):
+        wrapped_function = FunctionWrapper(filter_func)
         if not set(wrapped_function.arguments) <= self.parameters:
             raise ValueError('filter contains undefined/unreachable arguments')
         self.filters.append(wrapped_function)
@@ -332,5 +341,5 @@ class PermutationSpace:
         for parameter, value in self.constants.items():
             result[parameter] = value
         for parameter in self.dependents_topo:
-            result[parameter] = self.dependents[parameter](**result)
+            result[parameter] = self.dependents[parameter](**result.to_dict_())
         return result
