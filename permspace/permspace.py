@@ -47,9 +47,7 @@ class PermutationSpace:
                 )
             elif hasattr(value, '__call__'):
                 # dependent parameters
-                dependencies[parameter] = set(
-                    signature(value).parameters
-                )
+                dependencies[parameter] = set(signature(value).parameters)
             else:
                 # constants
                 self.parameters[parameter] = PermutationSpace.Parameter(
@@ -115,10 +113,7 @@ class PermutationSpace:
         """
         return set().union(
             set(),
-            *(
-                self.parameters[parameter].independencies
-                for parameter in parameters
-            ),
+            *(self.parameters[parameter].independencies for parameter in parameters),
         )
 
     def __getitem__(self, key):
