@@ -1,345 +1,240 @@
+from collections import namedtuple
 from inspect import signature
 
 
-class Namespace:
+def create_namespace_class(*parameters):
 
-    def __init__(self, **kwargs):
-        self._internal = {}
-        self.update_(**kwargs)
-
-    def __eq__(self, other):
-        return isinstance(other, Namespace) and self._internal == other._internal_
-
-    def __len__(self):
-        return len(self._internal)
-
-    def __add__(self, other):
-        updated = self._internal_
-        updated.update(other._internal_)
-        return Namespace(**updated)
-
-    def __contains__(self, key):
-        return key in self._internal_
-
-    def __getitem__(self, key):
-        try:
-            return getattr(self, key)
-        except AttributeError as err:
-            raise KeyError(str(err))
-
-    def __setitem__(self, key, value):
-        setattr(self, key, value)
-
-    def __delitem__(self, key):
-        if key in self._internal:
-            delattr(self, key)
-        else:
-            raise KeyError(key)
-
-    def __getattr__(self, key):
-        if key in self.__dict__:
-            return self.__dict__[key]
-        if key in self._internal:
-            return self._internal[key]
-        raise AttributeError('{} object has no attribute {}'.format(repr(self.__class__.__name__), repr(key)))
-
-    def __setattr__(self, key, value):
-        self.__dict__[key] = value
-        if not (key.startswith('_') and key.endswith('_')):
-            self._internal[key] = value
-
-    def __delattr__(self, key):
-        if key in self._internal:
-            del self._internal[key]
-            del self.__dict__[key]
-
-    def __repr__(self):
-        return 'Namespace(' + ', '.join('{}={}'.format(k, repr(v)) for k, v in sorted(self._internal.items())) + ')'
-
-    def __str__(self):
-        return repr(self)
-
-    def update_(self, **kwargs):
-        invalid_keys = set(kwargs.keys()).intersection(dir(self))
-        if invalid_keys:
-            message = '\n'.join([
-                'The following are reserved and not allowed as keys:',
-                *(f'    {key}' for key in sorted(invalid_keys)),
-            ])
-            raise ValueError(message)
-        self._internal.update(kwargs)
-        self.__dict__.update(kwargs)
-
-    def keys_(self):
-        return self._internal.keys()
-
-    def values_(self):
-        return self._internal.values()
-
-    def items_(self):
-        return self._internal.items()
-
-    def _expand_order(self, order):
-        order = list(order)
-        return order + sorted(set(self.keys()) - set(order))
-
-    def to_tuple_(self, order):
-        order = self._expand_order(order)
-        return tuple(self[k] for k in order)
-
-    def to_dict_(self):
-        return self._internal_
-
-    def to_csv_row_(self, order):
-        order = self._expand_order(order)
-        return '\t'.join(str(self[k]) for k in order)
-
-
-class MixedRadix:
-
-    def __init__(self, radixes, init_values=None):
-        self.radixes = radixes
-        if init_values is None:
-            self._state = len(radixes) * [0]
-        else:
-            assert len(radixes) == len(init_values)
-            assert all(place < cap for place, cap in zip(init_values, radixes))
-            self._state = list(init_values)
-        self._state[-1] -= 1
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        return self.next()
-
-    def next(self, min_place=None):
-        if min_place is None:
-            min_place = len(self._state) - 1
-        for index in range(min_place + 1, len(self._state)):
-            self._state[index] = 0
-        for index in reversed(range(min_place + 1)):
-            if self._state[index] < self.radixes[index] - 1:
-                self._state[index] += 1
-                break
-            elif index == 0:
-                raise StopIteration
-            else:
-                self._state[index] = 0
-        return self._state_
-
-
-class ParameterSpaceIterator:
-
-    def __init__(self, pspace, start=None, end=None):
-        if start is None:
-            start = {}
-        elif isinstance(start, Namespace):
-            start = start.to_dict_()
-        if end is None:
-            end = {}
-        elif isinstance(end, Namespace):
-            end = end.to_dict_()
-        self.pspace = pspace
-        start_indices = len(self.pspace.order) * [0]
-        for key, value in start.items():
-            assert key in self.pspace.independents, 'unknown start parameter: {}'.format(key)
-            assert value in self.pspace.independents[key], \
-                'unknown value for start parameter {}: {}'.format(key, repr(value))
-            index = self.pspace.order.index(key)
-            start_indices[index] = self.pspace.independents[key].index(value)
-        self._state = MixedRadix(self.pspace.ordered_sizes, start_indices)
-        self._end_indices = None
-        if end:
-            self._end_indices = len(self.pspace.order) * [0]
-            for key, value in end.items():
-                assert key in self.pspace.independents, 'unknown end parameter: {}'.format(key)
-                assert value in self.pspace.independents[key], \
-                    'unknown value for end parameter {}: {}'.format(key, repr(value))
-                index = self.pspace.order.index(key)
-                self._end_indices[index] = self.pspace.independents[key].index(value)
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        conflicts = True
-        min_place = len(self.pspace.order) - 1
-        while conflicts:
-            next_index = self._state.next(min_place)
-            if self._end_indices and next_index >= self._end_indices:
-                raise StopIteration
-            next_state = self.pspace._get_namespace_from_indices_(next_index)
-            conflicts = self._check_filters(next_state)
-            if conflicts:
-                min_place = min(
-                    max(self.pspace.order.index(parameter) for parameter in parameters) for parameters in conflicts
-                )
-        return next_state
-
-    def _check_filters_(self, result):
-        conflicts = []
-        for func in self.pspace.filters:
-            if not func(**result.to_dict_()):
-                conflicts.append(set.union(*(self.pspace.dependency_closure[argument] for argument in func.arguments)))
-        return conflicts
-
-
-class FunctionWrapper:
-
-    def __init__(self, func):
-        self.func = func
-        self.arguments = tuple(signature(self.func).parameters.keys())
-
-    def __call__(self, **kwargs):
-        return self.func(**dict((k, v) for k, v in kwargs.items() if k in self.arguments))
+    return namedtuple('Namespace', ['pspace_', 'index_', *parameters])
 
 
 class PermutationSpace:
 
+    Parameter = namedtuple('Parameter', 'name, value, independencies, arguments')
+    FilterFunction = namedtuple('FilterFunction', 'function, arguments, min_place')
+
     def __init__(self, order, **kwargs):
-        self.independents = {}
-        self.dependents = {}
-        self.dependents_topo = []
-        self.dependency_closure = {}
-        self.constants = {}
+        self.order = order
+        self.parameters = {}
         self.filters = []
+        self.filter_min_args = []
         self.order = list(order)
-        for key, value in kwargs.items():
-            if hasattr(value, '__iter__') and not isinstance(value, str):
-                self.independents[key] = list(value)
-            elif hasattr(value, '__call__'):
-                self.dependents[key] = FunctionWrapper(value)
-            else:
-                self.constants[key] = value
+        self.topological_order = []
+
+        self._process_parameters(kwargs)
         self._check_order()
-        self._calculate_dependents_topo()
-        self._calculate_dependency_closure()
-        self._simplify_order()
 
-    def __getitem__(self, key):
-        if key in self.independents:
-            return self.independents[key]
-        if key in self.dependents:
-            return self.dependents[key]
-        if key in self.constants:
-            return self.constants[key]
-        raise KeyError(f'no parameter {key}; possible choices are {", ".join(self.parameters)}')
+        self.namespace_class = create_namespace_class(*self.topological_order)
 
-    def _calculate_dependents_topo_(self):
-        prev_count = 0
-        while len(self.dependents_topo) < len(self.dependents):
-            for key, func in self.dependents.items():
-                if key in self.dependents_topo:
-                    continue
-                reachables = self.parameters
-                if set(func.arguments) <= reachables:
-                    self.dependents_topo.append(key)
-            if len(self.dependents_topo) == prev_count:
-                unreachables = set(self.dependents.keys()) - set(self.dependents_topo)
-                raise ValueError('undefined arguments in parameter: ' + ', '.join(sorted(unreachables)))
-            prev_count = len(self.dependents_topo)
+    def _process_parameters(self, parameters):
+        """Parse parameters into a usable format for later.
 
-    def _calculate_dependency_closure_(self):
-        for key in self.independents:
-            self.dependency_closure[key] = set([key])
-        for key in self.constants:
-            self.dependency_closure[key] = set([key])
-        for key in self.dependents_topo:
-            self.dependency_closure[key] = set.union(
-                set(), *(self.dependency_closure[argument] for argument in self.dependents[key].arguments)
-            )
-
-    def _check_order_(self):
-        order_set = set(self.order)
-        if len(self.order) != len(order_set):
-            uniques = set()
-            duplicates = set()
-            for key in self.independents:
-                if key in uniques:
-                    duplicates.add(key)
-                uniques.add(key)
-            raise ValueError('parameter ordering contains duplicates: ' + ', '.join(sorted(duplicates)))
-        if order_set != set(self.independents.keys()):
-            if not order_set <= self.parameters:
-                unreachables = order_set - self.parameters
-                raise ValueError('parameter ordering contains undefined parameters: ' + ', '.join(sorted(unreachables)))
-            if not set(self.independents.keys()) <= order_set:
-                unreachables = set(self.independents.keys()) - order_set
-                raise ValueError(
-                    'parameter ordering is missing independent parameters: ' + ', '.join(sorted(unreachables))
+        1. Create Parameter objects that contain useful information
+        2. Sort parameters topologically so we can calculate their values in
+        one pass in the future.
+        """
+        constants = set()
+        dependents = []
+        dependencies = {}
+        # process parameters depending on whether they are independent, dependent, or constants
+        for parameter, value in parameters.items():
+            if parameter in self.order:
+                # independent parameters
+                self.parameters[parameter] = PermutationSpace.Parameter(
+                    parameter,
+                    tuple(value),
+                    set([parameter]),
+                    set(),
                 )
-            if not order_set <= set(self.independents.keys()):
-                unreachables = order_set - set(self.independents.keys())
-                raise ValueError(
-                    'parameter ordering contains non-independent parameters: ' + ', '.join(sorted(unreachables))
+            elif hasattr(value, '__call__'):
+                # dependent parameters
+                dependencies[parameter] = set(
+                    signature(value).parameters
                 )
+            else:
+                # constants
+                self.parameters[parameter] = PermutationSpace.Parameter(
+                    parameter,
+                    value,
+                    set([parameter]),
+                    set(),
+                )
+                constants.add(parameter)
+        # initialize the topological order with independent parameters
+        self.topological_order.extend(self.order)
+        # loop through dependents until they have all been added to the topological order
+        to_delete = set(['__dummy__'])
+        while to_delete and dependencies:
+            to_delete = set()
+            for parameter, parents in dependencies.items():
+                if parents <= self.parameters.keys():
+                    to_delete.add(parameter)
+                    self.parameters[parameter] = PermutationSpace.Parameter(
+                        parameter,
+                        parameters[parameter],
+                        self._get_dependencies(dependencies[parameter]),
+                        parents,
+                    )
+                    dependents.append(parameter)
+            if not to_delete and dependencies:
+                raise ValueError(f'undefined arguments in parameters: {list(dependencies.keys())}')
+            for parameter in to_delete:
+                del dependencies[parameter]
+        # add constants and dependent parameters  to the topological order at the end
+        self.topological_order.extend(sorted(constants))
+        self.topological_order.extend(dependents)
 
-    def _simplify_order_(self):
-        self.order = [parameter for parameter in self.order if parameter in self.independents]
+    def _check_order(self):
+        """Check that the order of significance is valid.
 
-    @property
-    def parameters(self):
-        return set.union(
-            set(self.independents.keys()),
-            set(self.dependents_topo),
-            set(self.constants.keys()),
+        This means that the order:
+        * contains only unique values
+        * does not contain undefined values
+        * does not contain un-iterable values
+        """
+        seen = set()
+        for parameter in self.order:
+            if parameter not in self.parameters:
+                raise ValueError(f'parameter "{parameter}" in ordering not defined')
+            if parameter in seen:
+                raise ValueError(f'parameter "{parameter}" listed twice in ordering')
+            if not hasattr(self[parameter], '__iter__'):
+                raise ValueError(f'parameter "{parameter}" is not iterable')
+            if isinstance(self[parameter], str):
+                raise ValueError(f'parameter "{parameter}" is a string')
+            seen.add(parameter)
+
+    def _get_dependencies(self, parameters):
+        """Get the dependencies of a set of parameters.
+
+        Arguments:
+            parameters (Iterable[str]): A collection of parameters.
+
+        Returns:
+            Set[str]: The set of independent parameters the arguments are
+                dependent on.
+        """
+        return set().union(
+            set(),
+            *(
+                self.parameters[parameter].independencies
+                for parameter in parameters
+            ),
         )
 
-    @property
-    def approximate_size(self):
-        product = 1
-        for values in self.independents.values():
-            product *= len(values)
-        return product
-
-    @property
-    def ordered_sizes(self):
-        return [len(self.independents[parameter]) for parameter in self.order]
+    def __getitem__(self, key):
+        return self.parameters[key]
 
     def __len__(self):
         return len(list(self.__iter__()))
 
     def __iter__(self):
-        return ParameterSpaceIterator(self)
+        yield from self.iter_between()
 
-    def iter_from(self, start=None):
-        return ParameterSpaceIterator(self, start=start)
+    def filter(self, filter_func):
+        """Filter the permutation space.
 
-    def iter_until(self, end=None):
-        return ParameterSpaceIterator(self, end=end)
+        To efficiently skip the filtered parts of the permutation space, we
+        cache the least significant argument of each filter. If a permutation
+        is filtered, we then find the most significant of these arguments.
+        Since changing anything less significant will not change the result of
+        that filter, we know we directly increment that parameter instead.
 
-    def iter_between(self, start=None, end=None):
-        return ParameterSpaceIterator(self, start=start, end=end)
+        Arguments:
+            filter_func (Callable[[*Any], bool]): A function that returns True
+                only if a permutation is allowed.
 
-    def iter_only(self, key, value):
-        start_index = len(self.order) * [0]
-        key_index = self.order.index(key)
-        value_index = self.independents[key].index(value)
-        start_index[key_index] = value_index
-        end_index = MixedRadix(self.ordered_sizes, start_index).next(key_index)
-        start = self._get_independents_from_indices(start_index)
-        end = self._get_independents_from_indices(end_index)
-        return ParameterSpaceIterator(self, start=start, end=end)
+        Raises:
+            ValueError: If the filter contains undefined arguments.
+        """
+        arguments = signature(filter_func).parameters.keys()
+        if not arguments <= self.parameters.keys():
+            raise ValueError('filter contains undefined arguments')
+        min_place_arg = min(
+            self._get_dependencies(arguments),
+            key=self.order.index,
+        )
+        self.filters.append(PermutationSpace.FilterFunction(
+            filter_func,
+            arguments,
+            self.order.index(min_place_arg),
+        ))
 
-    def add_filter(self, filter_func):
-        wrapped_function = FunctionWrapper(filter_func)
-        if not set(wrapped_function.arguments) <= self.parameters:
-            raise ValueError('filter contains undefined/unreachable arguments')
-        self.filters.append(wrapped_function)
+    def iter_from(self, start=None, skip=0):
+        yield from self.iter_between(start=start, skip=skip)
 
-    def _get_independents_from_indices_(self, indices):
-        assert len(indices) == len(self.order)
-        assert all(index < len(self.independents[key]) for index, key in zip(indices, self.order))
-        result = Namespace()
-        for parameter, index in zip(self.order, indices):
-            result[parameter] = self.independents[parameter][index]
+    def iter_until(self, end=None, skip=0):
+        yield from self.iter_between(end=end, skip=skip)
+
+    def _dict_to_index(self, values):
+        for parameter, value in values.items():
+            if parameter not in self.parameters:
+                raise ValueError(f'no parameter "{parameter}"')
+            if value not in self.parameters[parameter].value:
+                raise ValueError(f'parameter "{parameter}" has no value {repr(value)}')
+        result = []
+        for parameter in self.order:
+            if parameter in values:
+                result.append(self.parameters[parameter].value.index(values[parameter]))
+            else:
+                result.append(0)
         return result
 
-    def _get_namespace_from_indices_(self, indices):
-        result = self._get_independents_from_indices(indices)
-        for parameter, value in self.constants.items():
-            result[parameter] = value
-        for parameter in self.dependents_topo:
-            result[parameter] = self.dependents[parameter](**result.to_dict_())
-        return result
+    def _index_to_namespace(self, index):
+        result = {}
+        for parameter, i in zip(self.order, index):
+            result[parameter] = self.parameters[parameter].value[i]
+        for parameter in self.topological_order[len(self.order):]:
+            parameter = self.parameters[parameter]
+            if parameter.arguments:
+                result[parameter.name] = parameter.value(**{
+                    key: value
+                    for key, value in result.items()
+                    if key in parameter.arguments
+                })
+            else:
+                result[parameter.name] = parameter.value
+        return self.namespace_class(self, None, **result)
+
+    def iter_between(self, start=None, end=None, skip=0):
+        if start is None:
+            curr_index = (len(self.order) - 1) * [0] + [-1]
+        else:
+            curr_index = self._dict_to_index(start)
+            curr_index[-1] -= 1
+        if end is None:
+            end_index = len(self.order) * [float('inf')]
+        else:
+            end_index = self._dict_to_index(end)
+        skip_count = 0
+        while curr_index < end_index:
+            change_place = len(self.order) - 1
+            while change_place != -1:
+                curr_index = self._increment_index(curr_index, change_place)
+                if curr_index is None:
+                    return
+                change_place = -1
+                values = self._index_to_namespace(curr_index)
+                for filter_func in self.filters:
+                    filter_result = filter_func.function(**{
+                        parameter: getattr(values, parameter)
+                        for parameter in filter_func.arguments
+                    })
+                    if not filter_result:
+                        if filter_func.min_place > change_place:
+                            change_place = filter_func.min_place
+            if skip_count < skip:
+                skip_count += 1
+            elif curr_index < end_index:
+                yield values
+
+    def _increment_index(self, index, change_place=None):
+        if change_place is None:
+            change_place = len(self.order) - 1
+        for place in range(change_place, -1, -1):
+            parameter = self.order[place]
+            index[place] += 1
+            if index[place] >= len(self.parameters[parameter].value):
+                index[place] = 0
+            else:
+                return index
+        return None

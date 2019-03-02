@@ -1,1 +1,1 @@
-from .permspace import PermutationSpace, Namespace
+from .permspace import PermutationSpace
