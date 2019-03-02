@@ -1,29 +1,31 @@
+"""A more powerful itertools.product."""
+
 from collections import namedtuple
 from inspect import signature
 
 
-def create_namespace_class(*parameters):
-
-    return namedtuple('Namespace', ['pspace_', 'index_', *parameters])
-
-
 class PermutationSpace:
+    """The space of permutations of iterables."""
 
     Parameter = namedtuple('Parameter', 'name, value, independencies, arguments')
     FilterFunction = namedtuple('FilterFunction', 'function, arguments, min_place')
 
     def __init__(self, order, **kwargs):
+        """Initialize the PermutationSpace.
+
+        Arguments:
+            order (Sequence[str]): The order to permute the arguments.
+            kwargs: Parameters to permute.
+        """
         self.order = order
         self.parameters = {}
         self.filters = []
         self.filter_min_args = []
         self.order = list(order)
         self.topological_order = []
-
         self._process_parameters(kwargs)
         self._check_order()
-
-        self.namespace_class = create_namespace_class(*self.topological_order)
+        self.namespace_class = self._create_namespace_class(*self.topological_order)
 
     def _process_parameters(self, parameters):
         """Parse parameters into a usable format for later.
@@ -155,9 +157,23 @@ class PermutationSpace:
         ))
 
     def iter_from(self, start=None, skip=0):
+        """Iterate starting from a particular assignment of values.
+
+        Arguments:
+            start (Mapping[str, Any]): The inclusive starting assignment of values.
+            skip (int): The number of permutations to skip at the beginning.
+                Defaults to 0.
+        """
         yield from self.iter_between(start=start, skip=skip)
 
     def iter_until(self, end=None, skip=0):
+        """Iterate ending with a particular assignment of values.
+
+        Arguments:
+            end (Mapping[str, Any]): The exclusive ending assignment of values.
+            skip (int): The number of permutations to skip at the beginning.
+                Defaults to 0.
+        """
         yield from self.iter_between(end=end, skip=skip)
 
     def _dict_to_index(self, values):
@@ -191,6 +207,14 @@ class PermutationSpace:
         return self.namespace_class(self, None, **result)
 
     def iter_between(self, start=None, end=None, skip=0):
+        """Iterate between two particular assignments of values.
+
+        Arguments:
+            start (Mapping[str, Any]): The inclusive starting assignment of values.
+            end (Mapping[str, Any]): The exclusive ending assignment of values.
+            skip (int): The number of permutations to skip at the beginning.
+                Defaults to 0.
+        """
         if start is None:
             curr_index = (len(self.order) - 1) * [0] + [-1]
         else:
@@ -233,3 +257,7 @@ class PermutationSpace:
             else:
                 return index
         return None
+
+    @staticmethod
+    def _create_namespace_class(*parameters):
+        return namedtuple('Namespace', ['pspace_', 'index_', *parameters])
