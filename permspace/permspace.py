@@ -20,7 +20,6 @@ class PermutationSpace:
         self.order = order
         self.parameters = {}
         self.filters = []
-        self.filter_min_args = []
         self.order = list(order)
         self.topological_order = []
         self._process_parameters(kwargs)
@@ -176,36 +175,6 @@ class PermutationSpace:
         """
         yield from self.iter_between(end=end, skip=skip)
 
-    def _dict_to_index(self, values):
-        for parameter, value in values.items():
-            if parameter not in self.parameters:
-                raise ValueError(f'no parameter "{parameter}"')
-            if value not in self.parameters[parameter].value:
-                raise ValueError(f'parameter "{parameter}" has no value {repr(value)}')
-        result = []
-        for parameter in self.order:
-            if parameter in values:
-                result.append(self.parameters[parameter].value.index(values[parameter]))
-            else:
-                result.append(0)
-        return result
-
-    def _index_to_namespace(self, index):
-        result = {}
-        for parameter, i in zip(self.order, index):
-            result[parameter] = self.parameters[parameter].value[i]
-        for parameter in self.topological_order[len(self.order):]:
-            parameter = self.parameters[parameter]
-            if parameter.arguments:
-                result[parameter.name] = parameter.value(**{
-                    key: value
-                    for key, value in result.items()
-                    if key in parameter.arguments
-                })
-            else:
-                result[parameter.name] = parameter.value
-        return self.namespace_class(self, None, **result)
-
     def iter_between(self, start=None, end=None, skip=0):
         """Iterate between two particular assignments of values.
 
@@ -245,6 +214,36 @@ class PermutationSpace:
                 skip_count += 1
             elif curr_index < end_index:
                 yield values
+
+    def _dict_to_index(self, values):
+        for parameter, value in values.items():
+            if parameter not in self.parameters:
+                raise ValueError(f'no parameter "{parameter}"')
+            if value not in self.parameters[parameter].value:
+                raise ValueError(f'parameter "{parameter}" has no value {repr(value)}')
+        result = []
+        for parameter in self.order:
+            if parameter in values:
+                result.append(self.parameters[parameter].value.index(values[parameter]))
+            else:
+                result.append(0)
+        return result
+
+    def _index_to_namespace(self, index):
+        result = {}
+        for parameter, i in zip(self.order, index):
+            result[parameter] = self.parameters[parameter].value[i]
+        for parameter in self.topological_order[len(self.order):]:
+            parameter = self.parameters[parameter]
+            if parameter.arguments:
+                result[parameter.name] = parameter.value(**{
+                    key: value
+                    for key, value in result.items()
+                    if key in parameter.arguments
+                })
+            else:
+                result[parameter.name] = parameter.value
+        return self.namespace_class(self, None, **result)
 
     def _increment_index(self, index, change_place=None):
         if change_place is None:
