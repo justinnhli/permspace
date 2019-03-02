@@ -76,7 +76,7 @@ pspace = PermutationSpace(['x', 'y'],
     x=range(10),
     y=range(10),
 )
-pspace.add_filter((lambda x, y: x % 2 == y % 2 == 0))
+pspace.filter((lambda x, y: x % 2 == y % 2 == 0))
 for parameters in pspace:
     print(parameters.x, parameters.y)
 ```
@@ -84,23 +84,19 @@ for parameters in pspace:
 Instance attributes (read-only):
 
 * `PermutationSpace`. **`parameters`**: The `set` of all parameters names in this `PermutationSpace` instance.
-                     
-* `PermutationSpace`. **`approximate_size`**: An over-estimate of the size of the parameter, calculated as the product of the space of all independent parameters (without filtering).
-                     
-* `PermutationSpace`. **`ordered_sizes`**: A list of the sizes of each dependent parameter, in the given order.
 
 Instance methods:
 
-* `PermutationSpace(order, **kwargs)`: The `order` argument of the construct is the order in which parameter values should be changed, listed from most significant (changes least frequently) to least significant (changes most frequently).
+* `PermutationSpace(order, **kwargs)`: The `order` argument of the construct is the order in which parameter values should be changed, listed from most significant (changes least frequently) to least significant (changes most frequently). All other arguments are parameters.
+                     
+* `PermutationSpace`. **`filter`** `(filter_func)`: Filter the permutation space. The `filter_func` argument should be a function whose arguments are the same as a subset of the parameters for the `PermutationSpace`. Iteration on the `PermutationSpace` will not include any parameter sets were the function returns false. Multiple filters can be added to the same `PermutationSpace`.
 
-* `PermutationSpace`. **`iter_from`** `(**kwargs)`:
+* `PermutationSpace`. **`__iter__`** `()`: The standard iteration method, which returns a generator of all permutations of the space.
+
+* `PermutationSpace`. **`iter_from`** `(start=None, skip=0)`: Same as the standard `__iter__` function, except that it starts at (inclusive) the given dictionary of values. The `skip` argument skips however many permutations at the beginning.
                      
-* `PermutationSpace`. **`iter_until`** `(**kwargs)`:
+* `PermutationSpace`. **`iter_until`** `(end=None, skip=0)`: Same as the standard `__iter__` function, except that it ends at (exclusive) the given dictionary of values. The `skip` argument skips however many permutations at the beginning.
                      
-* `PermutationSpace`. **`iter_between`** `(**kwargs)`:
-                     
-* `PermutationSpace`. **`iter_only`** `(**kwargs)`:
-                     
-* `PermutationSpace`. **`add_filter`** `(boolean_fn)`:
+* `PermutationSpace`. **`iter_between`** `(start=None, end=None, skip=0)`: Same as the standard `__iter__` function, except that it starts at (inclusive) and ends at (exclusive) the given dictionaries of values. The `skip` argument skips however many permutations at the beginning.
 
 ### `class` **`Namespace`**
