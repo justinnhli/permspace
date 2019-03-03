@@ -220,7 +220,7 @@ class PermutationSpace:
             if parameter not in self.parameters:
                 raise ValueError(f'no parameter "{parameter}"')
             if value not in self.parameters[parameter].value:
-                raise ValueError(f'parameter "{parameter}" has no value {repr(value)}')
+                raise ValueError(f'{repr(value)} is not a valid value of parameter "{parameter}"')
         result = []
         for parameter in self.order:
             if parameter in values:
