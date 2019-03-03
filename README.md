@@ -98,5 +98,3 @@ Instance methods:
 * `PermutationSpace`. **`iter_until`** `(end=None, skip=0)`: Same as the standard `__iter__` function, except that it ends at (exclusive) the given dictionary of values. The `skip` argument skips however many permutations at the beginning.
                      
 * `PermutationSpace`. **`iter_between`** `(start=None, end=None, skip=0)`: Same as the standard `__iter__` function, except that it starts at (inclusive) and ends at (exclusive) the given dictionaries of values. The `skip` argument skips however many permutations at the beginning.
-
-### `class` **`Namespace`**
