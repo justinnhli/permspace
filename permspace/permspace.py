@@ -193,7 +193,7 @@ class PermutationSpace:
             end_index = len(self.order) * [float('inf')]
         else:
             end_index = self._dict_to_index(end)
-        skip_count = 0
+        count = 0
         while curr_index < end_index:
             change_place = len(self.order) - 1
             while change_place != -1:
@@ -201,7 +201,7 @@ class PermutationSpace:
                 if curr_index is None:
                     return
                 change_place = -1
-                values = self._index_to_namespace(curr_index)
+                values = self._index_to_namespace(count, curr_index)
                 for filter_func in self.filters:
                     filter_result = filter_func.function(**{
                         parameter: getattr(values, parameter)
@@ -210,10 +210,10 @@ class PermutationSpace:
                     if not filter_result:
                         if filter_func.min_place > change_place:
                             change_place = filter_func.min_place
-            if skip_count < skip:
-                skip_count += 1
-            elif curr_index < end_index:
-                yield values
+            if curr_index < end_index:
+                count += 1
+                if skip < count:
+                    yield values
 
     def _dict_to_index(self, values):
         for parameter, value in values.items():
@@ -229,7 +229,7 @@ class PermutationSpace:
                 result.append(0)
         return result
 
-    def _index_to_namespace(self, index):
+    def _index_to_namespace(self, count, index):
         result = {}
         for parameter, i in zip(self.order, index):
             result[parameter] = self.parameters[parameter].value[i]
@@ -243,7 +243,7 @@ class PermutationSpace:
                 })
             else:
                 result[parameter.name] = parameter.value
-        return self.namespace_class(self, None, **result)
+        return self.namespace_class(self, count, **result)
 
     def _increment_index(self, index, change_place=None):
         if change_place is None:
