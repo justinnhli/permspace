@@ -60,7 +60,7 @@ def test_permspace():
     assert len(list(pspace.iter_between(
         {'arabic': 1,},
         {'arabic': 2,},
-        skip=4
+        skip=4,
     ))) == 5
 
     # ordering errors

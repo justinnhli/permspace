@@ -162,6 +162,9 @@ class PermutationSpace:
             start (Mapping[str, Any]): The inclusive starting assignment of values.
             skip (int): The number of permutations to skip at the beginning.
                 Defaults to 0.
+
+        Yields:
+            Namespace: The sequences of values through the permutation space.
         """
         yield from self.iter_between(start=start, skip=skip)
 
@@ -172,6 +175,9 @@ class PermutationSpace:
             end (Mapping[str, Any]): The exclusive ending assignment of values.
             skip (int): The number of permutations to skip at the beginning.
                 Defaults to 0.
+
+        Yields:
+            Namespace: The sequences of values through the permutation space.
         """
         yield from self.iter_between(end=end, skip=skip)
 
@@ -183,6 +189,9 @@ class PermutationSpace:
             end (Mapping[str, Any]): The exclusive ending assignment of values.
             skip (int): The number of permutations to skip at the beginning.
                 Defaults to 0.
+
+        Yields:
+            Namespace: The sequences of values through the permutation space.
         """
         if start is None:
             curr_index = (len(self.order) - 1) * [0] + [-1]
