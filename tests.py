@@ -26,6 +26,7 @@ def test_permspace():
         '.'.join(values) for values in product('123', 'abc', ['i', 'ii', 'iii'])
     ]
     assert subpart_names == correct_subpart_names
+    assert next(iter(pspace)).uniqstr_ == 'arabic=1,letter_lower=a,roman_lower=i'
 
     # filter
     pspace.filter((lambda arabic: arabic < 3))
@@ -38,10 +39,6 @@ def test_permspace():
         arabic=range(1, 4),
         letter_lower=list('abc'),
         roman_lower=['i', 'ii', 'iii'],
-        question_name=(lambda arabic: str(arabic)),
-        part_name=(lambda question_name, letter_lower: question_name + '.' + letter_lower),
-        subpart_name=(lambda part_name, roman_lower: part_name + '.' + roman_lower),
-        constant='constant',
     )
 
     # iter_from

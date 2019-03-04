@@ -272,4 +272,12 @@ class PermutationSpace:
 
     @staticmethod
     def _create_namespace_class(*parameters):
-        return namedtuple('Namespace', ['pspace_', 'index_', *parameters])
+        class Namespace(namedtuple('Namespace', ['pspace_', 'index_', *parameters])):
+
+            @property
+            def uniqstr_(self):
+                return ','.join(
+                    f'{parameter}={getattr(self, parameter)}'
+                    for parameter in self.pspace_.order
+                )
+        return Namespace
