@@ -139,6 +139,9 @@ class PermutationSpace:
             filter_func (Callable[[*Any], bool]): A function that returns True
                 only if a permutation is allowed.
 
+        Returns:
+            PermutationSpace: The current permutation space.
+
         Raises:
             ValueError: If the filter contains undefined arguments.
         """
@@ -154,6 +157,7 @@ class PermutationSpace:
             arguments,
             self.order.index(min_place_arg),
         ))
+        return self
 
     def iter_from(self, start=None, skip=0):
         """Iterate starting from a particular assignment of values.
