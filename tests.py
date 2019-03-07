@@ -71,3 +71,29 @@ def test_permspace():
             ['arabic', 'letter_lower'],
             arabic=range(1, 4),
         )
+
+def test_record_store():
+    pspace = PermutationSpace(
+        ['random_seed', 'agent_type', 'num_transfers', 'num_albums', 'max_internal_actions'],
+        random_seed=[
+            0.35746869278354254, 0.7368915891545381, 0.03439267552305503, 0.21913569678035283, 0.0664623502695384,
+        ],
+        num_episodes=150000,
+        eval_frequency=100,
+        agent_type=['naive', 'kb'],
+        num_albums=[100, 500, 1000, 5000],
+        max_internal_actions=range(1, 6),
+        data_file='data/album_decade',
+        num_transfers=range(1, 6),
+        min_return=-100,
+        save_weights=False,
+    ).filter(
+        lambda num_transfers: num_transfers == 1
+    ).filter(
+        lambda num_albums, max_internal_actions:
+            num_albums == 5000 or max_internal_actions == 1
+    ).filter(
+        lambda num_albums, max_internal_actions:
+            not (num_albums == 5000 and max_internal_actions == 1)
+    )
+    assert len(pspace) == 70

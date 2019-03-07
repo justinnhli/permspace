@@ -148,7 +148,7 @@ class PermutationSpace:
         arguments = signature(filter_func).parameters.keys()
         if not arguments <= self.parameters.keys():
             raise ValueError('filter contains undefined arguments')
-        min_place_arg = min(
+        min_place_arg = max(
             self._get_dependencies(arguments),
             key=self.order.index,
         )
@@ -209,11 +209,11 @@ class PermutationSpace:
         count = 0
         while curr_index < end_index:
             change_place = len(self.order) - 1
-            while change_place != -1:
+            while change_place is not None:
                 curr_index = self._increment_index(curr_index, change_place)
                 if curr_index is None:
                     return
-                change_place = -1
+                change_place = None
                 values = self._index_to_namespace(count, curr_index)
                 for filter_func in self.filters:
                     filter_result = filter_func.function(**{
@@ -221,7 +221,7 @@ class PermutationSpace:
                         for parameter in filter_func.arguments
                     })
                     if not filter_result:
-                        if filter_func.min_place > change_place:
+                        if change_place is None or filter_func.min_place < change_place:
                             change_place = filter_func.min_place
             if curr_index < end_index:
                 count += 1
@@ -264,6 +264,7 @@ class PermutationSpace:
         for place in range(change_place, -1, -1):
             parameter = self.order[place]
             index[place] += 1
+            index[place + 1:] = (len(self.order) - place - 1) * [0]
             if index[place] >= len(self.parameters[parameter].value):
                 index[place] = 0
             else:
