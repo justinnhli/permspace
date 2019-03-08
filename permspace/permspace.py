@@ -273,6 +273,7 @@ class PermutationSpace:
 
     @staticmethod
     def _create_namespace_class(*parameters):
+
         class Namespace(namedtuple('Namespace', ['pspace_', 'index_', *parameters])):
 
             @property
@@ -281,4 +282,5 @@ class PermutationSpace:
                     f'{parameter}={getattr(self, parameter)}'
                     for parameter in self.pspace_.order
                 )
+
         return Namespace
