@@ -276,6 +276,12 @@ class PermutationSpace:
 
         class Namespace(namedtuple('Namespace', ['pspace_', 'index_', *parameters])):
 
+            def __str__(self):
+                result = super().__str__()
+                import re
+                result = re.sub(r'Namespace\(pspace_=<[^>]*>, ', 'Namespace(', result)
+                return result
+
             @property
             def uniqstr_(self):
                 return ','.join(
