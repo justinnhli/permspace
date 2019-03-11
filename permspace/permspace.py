@@ -18,7 +18,7 @@ class PermutationSpace:
             kwargs: Parameters to permute.
         """
         self.order = order
-        self.parameters = {}
+        self._parameters = {}
         self.filters = []
         self.order = list(order)
         self.topological_order = []
@@ -40,7 +40,7 @@ class PermutationSpace:
         for parameter, value in parameters.items():
             if parameter in self.order:
                 # independent parameters
-                self.parameters[parameter] = PermutationSpace.Parameter(
+                self._parameters[parameter] = PermutationSpace.Parameter(
                     parameter,
                     tuple(value),
                     set([parameter]),
@@ -51,7 +51,7 @@ class PermutationSpace:
                 dependencies[parameter] = set(signature(value).parameters)
             else:
                 # constants
-                self.parameters[parameter] = PermutationSpace.Parameter(
+                self._parameters[parameter] = PermutationSpace.Parameter(
                     parameter,
                     value,
                     set([parameter]),
@@ -65,9 +65,9 @@ class PermutationSpace:
         while to_delete and dependencies:
             to_delete = set()
             for parameter, parents in dependencies.items():
-                if parents <= self.parameters.keys():
+                if parents <= self._parameters.keys():
                     to_delete.add(parameter)
-                    self.parameters[parameter] = PermutationSpace.Parameter(
+                    self._parameters[parameter] = PermutationSpace.Parameter(
                         parameter,
                         parameters[parameter],
                         self._get_dependencies(dependencies[parameter]),
@@ -92,7 +92,7 @@ class PermutationSpace:
         """
         seen = set()
         for parameter in self.order:
-            if parameter not in self.parameters:
+            if parameter not in self._parameters:
                 raise ValueError(f'parameter "{parameter}" in ordering not defined')
             if parameter in seen:
                 raise ValueError(f'parameter "{parameter}" listed twice in ordering')
@@ -114,17 +114,21 @@ class PermutationSpace:
         """
         return set().union(
             set(),
-            *(self.parameters[parameter].independencies for parameter in parameters),
+            *(self._parameters[parameter].independencies for parameter in parameters),
         )
 
     def __getitem__(self, key):
-        return self.parameters[key]
+        return self._parameters[key].value
 
     def __len__(self):
         return len(list(self.__iter__()))
 
     def __iter__(self):
         yield from self.iter_between()
+
+    @property
+    def parameters(self):
+        return {key: param.value for key, param in self._parameters.items()}
 
     def filter(self, filter_func):
         """Filter the permutation space.
@@ -146,7 +150,7 @@ class PermutationSpace:
             ValueError: If the filter contains undefined arguments.
         """
         arguments = signature(filter_func).parameters.keys()
-        if not arguments <= self.parameters.keys():
+        if not arguments <= self._parameters.keys():
             raise ValueError('filter contains undefined arguments')
         min_place_arg = max(
             self._get_dependencies(arguments),
@@ -230,14 +234,14 @@ class PermutationSpace:
 
     def _dict_to_index(self, values):
         for parameter, value in values.items():
-            if parameter not in self.parameters:
+            if parameter not in self._parameters:
                 raise ValueError(f'no parameter "{parameter}"')
-            if value not in self.parameters[parameter].value:
+            if value not in self._parameters[parameter].value:
                 raise ValueError(f'{repr(value)} is not a valid value of parameter "{parameter}"')
         result = []
         for parameter in self.order:
             if parameter in values:
-                result.append(self.parameters[parameter].value.index(values[parameter]))
+                result.append(self._parameters[parameter].value.index(values[parameter]))
             else:
                 result.append(0)
         return result
@@ -245,9 +249,9 @@ class PermutationSpace:
     def _index_to_namespace(self, count, index):
         result = {}
         for parameter, i in zip(self.order, index):
-            result[parameter] = self.parameters[parameter].value[i]
+            result[parameter] = self._parameters[parameter].value[i]
         for parameter in self.topological_order[len(self.order):]:
-            parameter = self.parameters[parameter]
+            parameter = self._parameters[parameter]
             if parameter.arguments:
                 result[parameter.name] = parameter.value(**{
                     key: value
@@ -265,7 +269,7 @@ class PermutationSpace:
             parameter = self.order[place]
             index[place] += 1
             index[place + 1:] = (len(self.order) - place - 1) * [0]
-            if index[place] >= len(self.parameters[parameter].value):
+            if index[place] >= len(self._parameters[parameter].value):
                 index[place] = 0
             else:
                 return index
