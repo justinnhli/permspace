@@ -7,8 +7,8 @@ from inspect import signature
 class PermutationSpace:
     """The space of permutations of iterables."""
 
-    Parameter = namedtuple('Parameter', 'name, value, independencies, arguments')
-    FilterFunction = namedtuple('FilterFunction', 'function, arguments, min_place')
+    Parameter = namedtuple('Parameter', 'name, value, independencies, parameters')
+    FilterFunction = namedtuple('FilterFunction', 'function, parameters, min_place')
 
     def __init__(self, order, **kwargs):
         """Initialize the PermutationSpace.
@@ -149,16 +149,16 @@ class PermutationSpace:
         Raises:
             ValueError: If the filter contains undefined arguments.
         """
-        arguments = signature(filter_func).parameters.keys()
-        if not arguments <= self._parameters.keys():
-            raise ValueError('filter contains undefined arguments')
+        parameters = signature(filter_func).parameters.keys()
+        if not parameters <= self._parameters.keys():
+            raise ValueError('filter contains undefined parameters')
         min_place_arg = max(
-            self._get_dependencies(arguments),
+            self._get_dependencies(parameters),
             key=self.order.index,
         )
         self.filters.append(PermutationSpace.FilterFunction(
             filter_func,
-            arguments,
+            parameters,
             self.order.index(min_place_arg),
         ))
         return self
@@ -222,7 +222,7 @@ class PermutationSpace:
                 for filter_func in self.filters:
                     filter_result = filter_func.function(**{
                         parameter: getattr(values, parameter)
-                        for parameter in filter_func.arguments
+                        for parameter in filter_func.parameters
                     })
                     if not filter_result:
                         if change_place is None or filter_func.min_place < change_place:
@@ -252,11 +252,11 @@ class PermutationSpace:
             result[parameter] = self._parameters[parameter].value[i]
         for parameter in self.topological_order[len(self.order):]:
             parameter = self._parameters[parameter]
-            if parameter.arguments:
+            if parameter.parameters:
                 result[parameter.name] = parameter.value(**{
                     key: value
                     for key, value in result.items()
-                    if key in parameter.arguments
+                    if key in parameter.parameters
                 })
             else:
                 result[parameter.name] = parameter.value
