@@ -1,6 +1,6 @@
 """A more powerful itertools.product."""
 
-from collections import namedtuple
+from collections import defaultdict, namedtuple
 from inspect import signature
 
 
@@ -22,6 +22,7 @@ class PermutationSpace:
         self.filters = []
         self.order = list(order)
         self.topological_order = []
+        self.cache = defaultdict(dict)
         self._process_parameters(kwargs)
         self._check_order()
         self.namespace_class = self._create_namespace_class(*self.topological_order)
@@ -255,11 +256,12 @@ class PermutationSpace:
         for parameter in self.topological_order[len(self.order):]:
             parameter = self._parameters[parameter]
             if parameter.parameters:
-                result[parameter.name] = parameter.value(**{
-                    key: value
-                    for key, value in result.items()
-                    if key in parameter.parameters
-                })
+                key = tuple(result[key] for key in sorted(parameter.parameters))
+                if key not in self.cache[parameter.name]:
+                    self.cache[parameter.name][key] = parameter.value(**{
+                        key: result[key] for key in parameter.parameters
+                    })
+                result[parameter.name] = self.cache[parameter.name][key]
             else:
                 result[parameter.name] = parameter.value
         return self.namespace_class(self, count, **result)
