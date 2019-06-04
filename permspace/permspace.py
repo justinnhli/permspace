@@ -166,6 +166,22 @@ class PermutationSpace:
         ))
         return self
 
+    def filter_if(self, antecedent_func, consequent_func):
+        parameters = (
+            set(signature(antecedent_func).parameters.keys())
+            | set(signature(consequent_func).parameters.keys())
+        )
+        min_place_arg = max(
+            self._get_dependencies(parameters),
+            key=self.order.index,
+        )
+        self.filters.append(PermutationSpace.FilterFunction(
+            self._create_filter_if_func(antecedent_func, consequent_func),
+            parameters,
+            self.order.index(min_place_arg),
+        ))
+        return self
+
     def iter_from(self, start=None, skip=0):
         """Iterate starting from a particular assignment of values.
 
@@ -298,3 +314,22 @@ class PermutationSpace:
                 )
 
         return Namespace
+
+    @staticmethod
+    def _create_filter_if_func(antecedent_func, consequent_func):
+        antecedent_params = set(signature(antecedent_func).parameters.keys())
+        consequent_params = set(signature(consequent_func).parameters.keys())
+        def if_func(**kwargs):
+            antecedent_args = {
+                k: v for k, v in kwargs.items()
+                if k in antecedent_params
+            }
+            consequent_args = {
+                k: v for k, v in kwargs.items()
+                if k in consequent_params
+            }
+            return (
+                not antecedent_func(**antecedent_args)
+                or consequent_func(**consequent_args)
+            )
+        return if_func
