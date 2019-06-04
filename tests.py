@@ -37,6 +37,18 @@ def test_permspace():
     with pytest.raises(ValueError):
         pspace.filter((lambda undefined: undefined is None))
 
+    # filter if
+    pspace = deepcopy(orig_pspace)
+    pspace.filter_if(
+        (lambda arabic: arabic == 1),
+        (lambda roman_lower: roman_lower == 'ii'),
+    )
+    assert len(pspace) == 21
+    pspace.filter_if(
+        (lambda arabic: arabic == 3),
+        (lambda roman_lower: roman_lower == 'i'),
+    )
+    assert len(pspace) == 15
 
     # iter_from
     pspace = deepcopy(orig_pspace)
