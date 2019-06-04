@@ -17,12 +17,14 @@ class PermutationSpace:
             order (Sequence[str]): The order to permute the arguments.
             kwargs: Parameters to permute.
         """
+        # parameters and variables
         self.order = order
         self._parameters = {}
         self.filters = []
         self.order = list(order)
         self.topological_order = []
         self.cache = defaultdict(dict)
+        # initialization
         self._process_parameters(kwargs)
         self._check_order()
         self.namespace_class = self._create_namespace_class(*self.topological_order)
