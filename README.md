@@ -81,6 +81,8 @@ for parameters in pspace:
     print(parameters.x, parameters.y)
 ```
 
+## Documentation
+
 Instance attributes (read-only):
 
 * `PermutationSpace`. **`parameters`**: The `set` of all parameters names in this `PermutationSpace` instance.
@@ -98,3 +100,30 @@ Instance methods:
 * `PermutationSpace`. **`iter_until`** `(end=None, skip=0)`: Same as the standard `__iter__` function, except that it ends at (exclusive) the given dictionary of values. The `skip` argument skips however many permutations at the beginning.
                      
 * `PermutationSpace`. **`iter_between`** `(start=None, end=None, skip=0)`: Same as the standard `__iter__` function, except that it starts at (inclusive) and ends at (exclusive) the given dictionaries of values. The `skip` argument skips however many permutations at the beginning.
+
+## Change Log
+
+### 0.0.5 (next)
+
+* raise `ValueError` if independent parameter is not iterable
+* cache dependent parameter function calls
+* add `filter_if` convenience function
+
+### 0.0.4 (2019-03-11)
+
+* hide `parameter` in `PermutationSpace`
+
+### 0.0.3 (2019-03-06)
+
+* convert `filter()` to a fluent interface
+* add `index_` and `uniqstr_` attributes to `Namespace`
+* fix iteration bug if filtered
+
+### 0.0.2 (2019-03-01)
+
+* rewrite module
+* rename `add_filter()` to `filter()` in `PermutationSpace`
+
+### 0.0.1 (2019-01-11)
+
+* release minimum viable product with `iter_*` and `add_filter`.
