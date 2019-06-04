@@ -40,6 +40,8 @@ class PermutationSpace:
         for parameter, value in parameters.items():
             if parameter in self.order:
                 # independent parameters
+                if not hasattr(value, '__iter__'):
+                    raise ValueError(f'parameter "{parameter}" is not iterable: {value}')
                 self._parameters[parameter] = PermutationSpace.Parameter(
                     parameter,
                     tuple(value),
