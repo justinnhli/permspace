@@ -1,3 +1,4 @@
+from copy import deepcopy
 from unittest import TestCase, main
 from itertools import product
 
@@ -7,7 +8,7 @@ from permspace import PermutationSpace
 
 
 def test_permspace():
-    pspace = PermutationSpace(
+    orig_pspace = PermutationSpace(
         ['arabic', 'letter_lower', 'roman_lower'],
         arabic=range(1, 4),
         letter_lower=list('abc'),
@@ -19,6 +20,7 @@ def test_permspace():
     )
 
     # basic usage
+    pspace = deepcopy(orig_pspace)
     assert len(pspace) == 27
     assert pspace.order == ['arabic', 'letter_lower', 'roman_lower']
     subpart_names = [parameters.subpart_name for parameters in pspace]
@@ -29,31 +31,30 @@ def test_permspace():
     assert next(iter(pspace)).uniqstr_ == 'arabic=1,letter_lower=a,roman_lower=i'
 
     # filter
+    pspace = deepcopy(orig_pspace)
     pspace.filter((lambda arabic: arabic < 3))
     assert len(pspace) == 18
     with pytest.raises(ValueError):
         pspace.filter((lambda undefined: undefined is None))
 
-    pspace = PermutationSpace(
-        ['arabic', 'letter_lower', 'roman_lower'],
-        arabic=range(1, 4),
-        letter_lower=list('abc'),
-        roman_lower=['i', 'ii', 'iii'],
-    )
 
     # iter_from
+    pspace = deepcopy(orig_pspace)
     assert len(list(pspace.iter_from({'arabic': 3,}))) == 9
 
     # iter_until
+    pspace = deepcopy(orig_pspace)
     assert len(list(pspace.iter_until({'arabic': 2,}))) == 9
 
     # iter_between
+    pspace = deepcopy(orig_pspace)
     assert len(list(pspace.iter_between(
         {'arabic': 1,},
         {'arabic': 2,},
     ))) == 9
 
     # iter_between with skip
+    pspace = deepcopy(orig_pspace)
     assert len(list(pspace.iter_between(
         {'arabic': 1,},
         {'arabic': 2,},
