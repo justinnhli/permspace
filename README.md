@@ -103,7 +103,7 @@ Instance methods:
 
 ## Change Log
 
-### 0.0.5 (next)
+### 0.0.5 (2019-06-03)
 
 * raise `ValueError` if independent parameter is not iterable
 * cache dependent parameter function calls
