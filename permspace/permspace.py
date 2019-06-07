@@ -183,6 +183,20 @@ class PermutationSpace:
         return self._add_filter(parameters, filter_func)
 
     def filter_if(self, antecedent_func, consequent_func):
+        """Set conditions on the permutation space.
+
+        This is a convenience function. By De Morgan's laws, filter_if(A, B) is
+        equivalent to filter(not A or B).
+
+        Arguments:
+            antecedent_func (Callable[[*Any], bool]): A function that returns
+                True for the consequent_func to apply.
+            consequent_func (Callable[[*Any], bool]): A function that constrains
+                the permutation space only if antecedent_func is True.
+
+        Returns:
+            PermutationSpace: The current permutation space.
+        """
         parameters = (
             set(signature(antecedent_func).parameters.keys())
             | set(signature(consequent_func).parameters.keys())
