@@ -204,6 +204,20 @@ class PermutationSpace:
         filter_func = self._create_filter_if_func(antecedent_func, consequent_func)
         return self._add_filter(parameters, filter_func)
 
+    def filter_orthog(self, k=1, **defaults):
+        """Disallow more than k parameters to have non-default values.
+
+        Arguments:
+            k (int): The number of deviations. Defaults to 1.
+            **defaults: The default values for each parameter.
+
+        Returns:
+            PermutationSpace: The current permutation space.
+        """
+        parameters = set(defaults.keys())
+        filter_func = self._create_filter_orthog_func(k, **defaults)
+        return self._add_filter(parameters, filter_func)
+
     def iter_from(self, start=None, skip=0):
         """Iterate starting from a particular assignment of values.
 
@@ -355,3 +369,15 @@ class PermutationSpace:
                 or consequent_func(**consequent_args)
             )
         return if_func
+
+    @staticmethod
+    def _create_filter_orthog_func(k, **defaults):
+        def orthogonal_func(**kwargs):
+            diff_count = 0
+            for parameter, value in defaults.items():
+                if kwargs[parameter] != value:
+                    diff_count += 1
+                    if diff_count > k:
+                        return False
+            return True
+        return orthogonal_func

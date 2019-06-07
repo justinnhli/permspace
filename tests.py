@@ -50,6 +50,16 @@ def test_permspace():
     )
     assert len(pspace) == 15
 
+    # filter factored
+    pspace = deepcopy(orig_pspace)
+    pspace.filter_factored(arabic=1, letter_lower='a', roman_lower='i')
+    assert len(pspace) == 7
+    pspace = deepcopy(orig_pspace)
+    pspace.filter_factored(2, arabic=1, letter_lower='a', roman_lower='i')
+    for p in pspace:
+        print(p.arabic, p.letter_lower, p.roman_lower)
+    assert len(pspace) == 19
+
     # iter_from
     pspace = deepcopy(orig_pspace)
     assert len(list(pspace.iter_from({'arabic': 3,}))) == 9
