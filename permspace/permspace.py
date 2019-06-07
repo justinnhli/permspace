@@ -135,8 +135,8 @@ class PermutationSpace:
     def parameters(self):
         return {key: param.value for key, param in self._parameters.items()}
 
-    def filter(self, filter_func):
-        """Filter the permutation space.
+    def _add_filter(self, parameters, filter_func):
+        """Add a filter to the permutation space.
 
         To efficiently skip the filtered parts of the permutation space, we
         cache the least significant argument of each filter. If a permutation
@@ -145,6 +145,7 @@ class PermutationSpace:
         that filter, we know we directly increment that parameter instead.
 
         Arguments:
+            parameters (Set[str]): The parameters for the filter function.
             filter_func (Callable[[*Any], bool]): A function that returns True
                 only if a permutation is allowed.
 
@@ -152,9 +153,9 @@ class PermutationSpace:
             PermutationSpace: The current permutation space.
 
         Raises:
-            ValueError: If the filter contains undefined arguments.
+            ValueError: If any of the parameters are not defined in the
+                permutation space.
         """
-        parameters = signature(filter_func).parameters.keys()
         if not parameters <= self._parameters.keys():
             raise ValueError('filter contains undefined parameters')
         min_place_arg = max(
@@ -168,21 +169,26 @@ class PermutationSpace:
         ))
         return self
 
+    def filter(self, filter_func):
+        """Filter the permutation space.
+
+        Arguments:
+            filter_func (Callable[[*Any], bool]): A function that returns True
+                only if a permutation is allowed.
+
+        Returns:
+            PermutationSpace: The current permutation space.
+        """
+        parameters = signature(filter_func).parameters.keys()
+        return self._add_filter(parameters, filter_func)
+
     def filter_if(self, antecedent_func, consequent_func):
         parameters = (
             set(signature(antecedent_func).parameters.keys())
             | set(signature(consequent_func).parameters.keys())
         )
-        min_place_arg = max(
-            self._get_dependencies(parameters),
-            key=self.order.index,
-        )
-        self.filters.append(PermutationSpace.FilterFunction(
-            self._create_filter_if_func(antecedent_func, consequent_func),
-            parameters,
-            self.order.index(min_place_arg),
-        ))
-        return self
+        filter_func = self._create_filter_if_func(antecedent_func, consequent_func)
+        return self._add_filter(parameters, filter_func)
 
     def iter_from(self, start=None, skip=0):
         """Iterate starting from a particular assignment of values.
