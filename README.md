@@ -91,7 +91,7 @@ Instance methods:
 
 * `PermutationSpace(order, **kwargs)`: The `order` argument of the construct is the order in which parameter values should be changed, listed from most significant (changes least frequently) to least significant (changes most frequently). All other arguments are parameters.
                      
-* `PermutationSpace`. **`filter`** `(filter_func)`: Filter the permutation space. The `filter_func` argument should be a function whose arguments are the same as a subset of the parameters for the `PermutationSpace`. Iteration on the `PermutationSpace` will not include any parameter sets were the function returns false. Multiple filters can be added to the same `PermutationSpace`.
+* `PermutationSpace`. **`filter`** `(filter_func)`: Filter the permutation space. The `filter_func` argument should be a function whose parameters are the same as a subset of the parameters for the `PermutationSpace`. Iteration on the `PermutationSpace` will not include any parameter sets were the function returns false. Multiple filters can be added to the same `PermutationSpace`.
 
 * `PermutationSpace`. **`filter_if`** `(antecedent_func, consequent_func)`: Conditionally filter the permutation space. If the `antecedent_func` is true, then only the parameter sets where the `consequent_func` is also true will be allowed. This is mostly a convenience method, since by classical logic, `filter_if(A, B)` (where `A` and `B` are conditions) is equivalent to `filter(not A or B)`.
 
