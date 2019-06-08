@@ -107,7 +107,7 @@ Instance methods:
 
 ## Change Log
 
-### 0.0.6 (next)
+### 0.0.6 (2019-06-07)
 
 * add `filter_orthog` method
 
