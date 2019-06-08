@@ -185,7 +185,7 @@ class PermutationSpace:
     def filter_if(self, antecedent_func, consequent_func):
         """Set conditions on the permutation space.
 
-        This is a convenience function. By De Morgan's laws, filter_if(A, B) is
+        This is a convenience function. By classical logic, filter_if(A, B) is
         equivalent to filter(not A or B).
 
         Arguments:

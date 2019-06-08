@@ -93,6 +93,8 @@ Instance methods:
                      
 * `PermutationSpace`. **`filter`** `(filter_func)`: Filter the permutation space. The `filter_func` argument should be a function whose arguments are the same as a subset of the parameters for the `PermutationSpace`. Iteration on the `PermutationSpace` will not include any parameter sets were the function returns false. Multiple filters can be added to the same `PermutationSpace`.
 
+* `PermutationSpace`. **`filter_if`** `(antecedent_func, consequent_func)`: Conditionally filter the permutation space. If the `antecedent_func` is true, then only the parameter sets where the `consequent_func` is also true will be allowed. This is mostly a convenience method, since by classical logic, `filter_if(A, B)` (where `A` and `B` are conditions) is equivalent to `filter(not A or B)`.
+
 * `PermutationSpace`. **`__iter__`** `()`: The standard iteration method, which returns a generator of all permutations of the space.
 
 * `PermutationSpace`. **`iter_from`** `(start=None, skip=0)`: Same as the standard `__iter__` function, except that it starts at (inclusive) the given dictionary of values. The `skip` argument skips however many permutations at the beginning.
@@ -107,7 +109,7 @@ Instance methods:
 
 * raise `ValueError` if independent parameter is not iterable
 * cache dependent parameter function calls
-* add `filter_if` convenience function
+* add `filter_if` convenience method
 
 ### 0.0.4 (2019-03-11)
 
