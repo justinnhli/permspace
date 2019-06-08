@@ -213,8 +213,14 @@ class PermutationSpace:
 
         Returns:
             PermutationSpace: The current permutation space.
+
+        Raises:
+            ValueError: If a default value is not in the permutation space.
         """
         parameters = set(defaults.keys())
+        for parameter, default in defaults.items():
+            if default not in self[parameter]:
+                raise ValueError(f'{default} is not a valid default value for parameter {parameter}')
         filter_func = self._create_filter_orthog_func(k, **defaults)
         return self._add_filter(parameters, filter_func)
 
