@@ -95,6 +95,8 @@ Instance methods:
 
 * `PermutationSpace`. **`filter_if`** `(antecedent_func, consequent_func)`: Conditionally filter the permutation space. If the `antecedent_func` is true, then only the parameter sets where the `consequent_func` is also true will be allowed. This is mostly a convenience method, since by classical logic, `filter_if(A, B)` (where `A` and `B` are conditions) is equivalent to `filter(not A or B)`.
 
+* `PermutationSpace`. **`filter_orthog`** `(k=1, **defaults)`: Filter the permutation space so the parameters defined in `defaults` will have the default value, with at most `k` parameters being different. Useful for exploring parameters independent of each other.
+
 * `PermutationSpace`. **`__iter__`** `()`: The standard iteration method, which returns a generator of all permutations of the space.
 
 * `PermutationSpace`. **`iter_from`** `(start=None, skip=0)`: Same as the standard `__iter__` function, except that it starts at (inclusive) the given dictionary of values. The `skip` argument skips however many permutations at the beginning.
@@ -104,6 +106,10 @@ Instance methods:
 * `PermutationSpace`. **`iter_between`** `(start=None, end=None, skip=0)`: Same as the standard `__iter__` function, except that it starts at (inclusive) and ends at (exclusive) the given dictionaries of values. The `skip` argument skips however many permutations at the beginning.
 
 ## Change Log
+
+### 0.0.6 (next)
+
+* add `filter_orthog` method
 
 ### 0.0.5 (2019-06-03)
 
