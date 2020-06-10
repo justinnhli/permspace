@@ -315,6 +315,12 @@ class PermutationSpace:
             parameter = self._parameters[parameter]
             if parameter.parameters:
                 key = tuple(result[key] for key in sorted(parameter.parameters))
+                for index, key_part in enumerate(key):
+                    try:
+                        hash(key_part)
+                    except TypeError:
+                        error_parameter = sorted(parameter.parameters)[index]
+                        raise ValueError(f'value {key_part} of parameter "{error_parameter}" is unhashable')
                 if key not in self.cache[parameter.name]:
                     self.cache[parameter.name][key] = parameter.value(**{
                         key: result[key] for key in parameter.parameters
