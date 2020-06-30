@@ -2,6 +2,7 @@
 
 from collections import defaultdict, namedtuple
 from inspect import signature
+from itertools import islice
 
 
 class PermutationSpace:
@@ -348,11 +349,12 @@ class PermutationSpace:
 
         class Namespace(namedtuple('Namespace', ['pspace_', 'index_', *parameters])):
 
+            def __iter__(self):
+                return islice(self._fields, 2, None)
+
             def __str__(self):
-                result = super().__str__()
                 import re
-                result = re.sub(r'Namespace\(pspace_=<[^>]*>, ', 'Namespace(', result)
-                return result
+                return re.sub(r'Namespace\(pspace_=<[^>]*>, ', 'Namespace(', super().__str__())
 
             @property
             def uniqstr_(self):
@@ -360,6 +362,17 @@ class PermutationSpace:
                     f'{parameter}={getattr(self, parameter)}'
                     for parameter in self.pspace_.order
                 )
+
+            def keys(self):
+                yield from islice(self._fields, 2, None)
+
+            def values(self):
+                for field in self:
+                    yield getattr(self, field)
+
+            def items(self):
+                for field in self:
+                    yield field, getattr(self, field)
 
         return Namespace
 
